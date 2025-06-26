@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 판매자 정보: 본인만 읽고 쓸 수 있고, 관리자는 모든 정보를 읽을 수 있다.
+    match /sellers/{sellerId} {
+      allow read, update: if request.auth != null && request.auth.uid == sellerId;
+      allow create: if request.auth != null;
+      // 관리자는 모든 판매자 정보를 읽을 수 있음 (관리자 페이지용)
+      allow get: if request.auth.token.admin == true;
+    }
+
+    // 상품 정보: 로그인 사용자는 읽기 가능.
+    // 생성은 본인만 가능.
+    // 업데이트는 관리자만 가능.
+    match /products/{productId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update: if request.auth.token.admin == true;
+    }
+
+    // 결제 정보: 본인만 생성하고 읽을 수 있다.
+    match /payments/{paymentId} {
+        allow read, create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+    }
+  }
+}
